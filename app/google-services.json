@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "127233087976",
+    "project_id": "visitor-tracker-7dcf4",
+    "storage_bucket": "visitor-tracker-7dcf4.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:127233087976:android:1c7670aa3a58bd021aac5d",
+        "android_client_info": {
+          "package_name": "com.example.visitortracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdW6SR-934sTkuxV1RrgxsfqeSuwlmuls"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
