@@ -51,11 +51,13 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
         <Button
+            android:id="@+id/btnBuzzVisitor"
             android:layout_width="160dp"
             android:layout_height="wrap_content"
             android:text="@string/buzz"
             android:padding="16dp"
-            android:layout_marginTop="12dp"/>
+            android:layout_marginTop="12dp"
+            android:enabled="false" />
         <Button
             android:id="@+id/btnRemoveVisitor"
             android:layout_width="160dp"
@@ -63,6 +65,7 @@
             android:text="@string/btn_remove"
             android:padding="16dp"
             android:layout_marginTop="12dp"
+            android:enabled="false"
             android:layout_marginStart="10dp"/>
     </LinearLayout>
 </LinearLayout>

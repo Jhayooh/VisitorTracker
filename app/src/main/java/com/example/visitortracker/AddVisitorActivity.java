@@ -7,8 +7,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 import android.os.Bundle;
@@ -28,6 +30,7 @@ public class AddVisitorActivity extends AppCompatActivity {
     private final FirebaseDatabase database = FirebaseDatabase.getInstance();
     private final DatabaseReference myDeviceRef = database.getReference("VisitorTracker/device");
     private final DatabaseReference myVisitorRef = database.getReference("VisitorTracker/visitor");
+    private final DatabaseReference myHistoryRef = database.getReference("VisitorTracker/history");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,7 +45,7 @@ public class AddVisitorActivity extends AppCompatActivity {
         Date nCurrDate = Calendar.getInstance().getTime();
         Date nCurrTime = Calendar.getInstance().getTime();
 
-        SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy", Locale.getDefault());
+        SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM d, yyyy", Locale.getDefault());
         SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
 
         String currDate = dateFormat.format(nCurrDate);
@@ -98,6 +101,27 @@ public class AddVisitorActivity extends AppCompatActivity {
 
                     }
                 });
+
+                String myVisitorRef = myHistoryRef.push().getKey();
+                myHistoryRef.child(myVisitorRef).child("date").setValue(currDate);
+                myHistoryRef.child(myVisitorRef).child("time").setValue(currTime);
+                myHistoryRef.child(myVisitorRef).child("name").setValue(username);
+
+//                myHistoryRef.addListenerForSingleValueEvent(new ValueEventListener() {
+//                    @Override
+//                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+//                        List<String> list = new ArrayList<>();
+//                        for (DataSnapshot dataSnapshot: snapshot.getChildren()){
+//                            String visitor = dataSnapshot.getValue().toString();
+//                            list.add(visitor);
+//                        }
+//                    }
+//
+//                    @Override
+//                    public void onCancelled(@NonNull DatabaseError error) {
+//
+//                    }
+//                });
                 finish();
             }
         });

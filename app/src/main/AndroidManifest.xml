@@ -16,9 +16,13 @@
         android:theme="@style/Theme.VisitorTracker"
         tools:targetApi="31">
         <activity
-            android:name=".AddVisitorActivity"
+            android:name=".HistoryActivity"
             android:exported="false"
             android:parentActivityName=".MainActivity"/>
+        <activity
+            android:name=".AddVisitorActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

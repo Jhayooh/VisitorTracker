@@ -1,5 +1,7 @@
 package com.example.visitortracker;
 
+import static android.content.ContentValues.TAG;
+
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentActivity;
@@ -10,7 +12,9 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.Manifest;
+import android.util.Log;
 
+import com.google.android.gms.common.internal.safeparcel.SafeParcelable;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -30,13 +34,13 @@ import com.google.firebase.database.ValueEventListener;
 import java.lang.reflect.Array;
 import java.util.Arrays;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback{
 
     private GoogleMap mMap;
-    private FirebaseDatabase database;
-    private DatabaseReference databaseReference;
-    private LocationListener locationListener;
-    private LocationManager locationManager;
+    private FirebaseDatabase database = FirebaseDatabase.getInstance();
+    private final DatabaseReference myRootRef = database.getReference("VisitorTracker");
+    private final DatabaseReference myDeviceRef = database.getReference("VisitorTracker/device");
+    private final DatabaseReference myVisitorRef = database.getReference("VisitorTracker/visitor");
     private Marker userMarker;
     private ActivityMapsBinding binding;
 
@@ -71,40 +75,43 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //        LatLng sydney = new LatLng(-34, 151);
 //        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
 //        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
-        database = FirebaseDatabase.getInstance();
-        DatabaseReference locationReference = database.getReference("Device/Location");
-        DatabaseReference userRef = database.getReference("Device/username");
-        locationReference.addValueEventListener(new ValueEventListener() {
+        myDeviceRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                Double latitude = snapshot.child("latitude").getValue(Double.class);
-                Double longitude = snapshot.child("longitude").getValue(Double.class);
+                Double latitude;
+                Double longitude;
+                for (DataSnapshot dataSnapshot: snapshot.getChildren()){
+                    latitude = dataSnapshot.child("latitude").getValue(Double.class);
+                    longitude = dataSnapshot.child("longitude").getValue(Double.class);
 
-                if (latitude != null && longitude != null) {
-                    LatLng location = new LatLng(latitude, longitude);
-                    userRef.addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                            String username = dataSnapshot.getValue(String.class);
-                            if (userMarker!= null) {
-                                userMarker.setVisible(true);
+                    if (latitude != null && longitude != null){
+                        LatLng location = new LatLng(latitude, longitude);
+
+                        myVisitorRef.addValueEventListener(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                for (DataSnapshot visitorKey: dataSnapshot.getChildren()){
+                                    String username = visitorKey.child("username").getValue(String.class);
+                                    if (userMarker!= null) {
+                                        userMarker.setVisible(true);
+                                    }
+                                    userMarker.setPosition(location);
+                                    if (username != null) {
+                                        userMarker.setTitle(username);
+                                    } else {
+                                        // Handle case where username is null
+                                        userMarker.setVisible(false);
+                                    }
+                                    mMap.moveCamera(CameraUpdateFactory.newLatLng(location));
+                                }
                             }
-                            if (username != null) {
-                                userMarker.setPosition(location);
-                                userMarker.setTitle(username);
-                            } else {
-                                // Handle case where username is null
-                                userMarker.setPosition(location);
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
+
                             }
-                            mMap.moveCamera(CameraUpdateFactory.newLatLng(location));
-
-                        }
-
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError error) {
-
-                        }
-                    });
+                        });
+                    }
                 }
             }
 
@@ -112,31 +119,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onCancelled(@NonNull DatabaseError error) {
 
             }
-
         });
+
         float bearing = 89; // Rotate the map by 90 degrees (modify as needed)
         mMap.moveCamera(CameraUpdateFactory.newCameraPosition(
                 new CameraPosition.Builder()
                         .target(mMap.getCameraPosition().target) // Set the map's current position as the target
                         .zoom(mMap.getCameraPosition().zoom) // Set the zoom level
                         .bearing(bearing) // Set the bearing/rotation angle
-                        .tilt(mMap.getCameraPosition().tilt) // Set the tilt if needed
+                        .tilt(mMap.getCameraPosition().tilt)// Set the tilt if needed
                         .build()
         ));
-//        databaseReference.addValueEventListener(new ValueEventListener(){
-//            @Override
-//            public void onDataChange(@NonNull DataSnapshot snapshot) {
-//
-//            }
-//
-//            @Override
-//            public void onCancelled(@NonNull DatabaseError error) {
-//
-//            }
-//        });
-    }
-
-    public void getLocation(){
-
     }
 }

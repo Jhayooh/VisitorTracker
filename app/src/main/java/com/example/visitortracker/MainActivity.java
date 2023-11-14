@@ -17,7 +17,6 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
-import com.google.android.material.snackbar.Snackbar;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -39,10 +38,8 @@ import android.widget.Toast;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.NavigationUI;
+
 import com.example.visitortracker.databinding.ActivityMainBinding;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -52,6 +49,7 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.android.gms.location.FusedLocationProviderClient;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
@@ -65,10 +63,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private final DatabaseReference myVisitorRef = database.getReference("VisitorTracker/visitor");
 
     private View view1;
-
+    private HashMap<String, Marker> hashMapMarker;
     private Toolbar toolbar;
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
+
 
 
     @Override
@@ -128,10 +127,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 for (DataSnapshot visitorDataSnapshot: visitorSnapshot.getChildren()){
                                     if (Objects.equals(visitorDataSnapshot.child("deviceId").getValue(String.class), dataSnapshot.getKey())){
                                         String username = visitorDataSnapshot.child("username").getValue(String.class);
+                                        hashMapMarker = new HashMap<>();
                                         MarkerOptions markeroptions = new MarkerOptions()
                                                 .position(location)
                                                 .title(username);
-                                        mMap.addMarker(markeroptions);
+                                        Marker marker = mMap.addMarker(markeroptions);
+                                        hashMapMarker.put(username,marker);
                                     } else {
                                         Log.e("FirebaseError", "Error sa deviceId ng DEVICE at VISITOR ");
                                     }
@@ -213,46 +214,51 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         inflater.inflate(R.menu.main_menu, menu);
         return true;
     }
+
+    public void createBottomSheet(){
+        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(MainActivity.this, R.style.BottomSheetDialogTheme);
+        view1= LayoutInflater.from(getApplicationContext())
+                .inflate(R.layout.activity_bottom_frame,(LinearLayout) findViewById(R.id.layout_container));
+        myVisitorRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                List<String> visitorDetail= new ArrayList<String>();
+                for (DataSnapshot itemSnap: snapshot.getChildren()){
+                    String username = itemSnap.child("username").getValue(String.class);
+                    visitorDetail.add(username);
+//                    visitorDetail.add(itemSnap.child("username").getValue(String.class));
+                }
+                ArrayAdapter<String> visitorAdapter = new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_spinner_item, visitorDetail);
+                visitorAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+                Spinner spinnerInDialog = view1.findViewById(R.id.visitor_spinner);
+                spinnerInDialog.setAdapter(visitorAdapter);
+                spinnerInDialog.setOnItemSelectedListener(MainActivity.this);
+
+                visitorAdapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Log.e("FirebaseError", "Database Error: " + error.getMessage());
+                Toast.makeText(MainActivity.this, "Database Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+
+
+            }
+        });
+
+        bottomSheetDialog.setContentView(view1);
+        bottomSheetDialog.show();
+    }
     @Override
     public boolean onOptionsItemSelected(MenuItem menuItem){
         switch(menuItem.getItemId()){
             case R.id.menu_visitor:
-                BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(MainActivity.this, R.style.BottomSheetDialogTheme);
-                view1= LayoutInflater.from(getApplicationContext())
-                        .inflate(R.layout.activity_bottom_frame,(LinearLayout) findViewById(R.id.layout_container));
-
-                myVisitorRef.addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        List<String> visitorDetail= new ArrayList<String>();
-                        for (DataSnapshot itemSnap: snapshot.getChildren()){
-                            String username = itemSnap.child("username").getValue(String.class);
-                            visitorDetail.add(username);
-//                    visitorDetail.add(itemSnap.child("username").getValue(String.class));
-                        }
-                        ArrayAdapter<String> visitorAdapter = new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_spinner_item, visitorDetail);
-                        visitorAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-
-                        Spinner spinnerInDialog = view1.findViewById(R.id.visitor_spinner);
-                        spinnerInDialog.setAdapter(visitorAdapter);
-                        spinnerInDialog.setOnItemSelectedListener(MainActivity.this);
-
-                        visitorAdapter.notifyDataSetChanged();
-                    }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {
-                        Log.e("FirebaseError", "Database Error: " + error.getMessage());
-                        Toast.makeText(MainActivity.this, "Database Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
-
-
-                    }
-                });
-
-                bottomSheetDialog.setContentView(view1);
-                bottomSheetDialog.show();
+                createBottomSheet();
                 return true;
             case R.id.menu_history:
+                Intent intentHistory = new Intent(MainActivity.this, HistoryActivity.class);
+                startActivity(intentHistory);
                 return true;
             case R.id.menu_add_visitor:
                 Intent intent = new Intent(MainActivity.this, AddVisitorActivity.class);
@@ -267,7 +273,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         String selectedUsername = (String) parent.getSelectedItem();
 //        Button btnBuzz = view1.findViewById(R.id.btnBuzzDevice);
         Button btnRemove = view1.findViewById(R.id.btnRemoveVisitor);
+        Button btnBuzz = view1.findViewById(R.id.btnBuzzVisitor);
+        btnBuzz.setBackgroundColor(0xFFDC143C);
         TextView txtDeviceId = view1.findViewById(R.id.textDeviceId);
+//        Log.d(TAG, "txtDeviceId value: " + txtDeviceId.getText().toString().trim());
 
         myVisitorRef.addValueEventListener(new ValueEventListener() {
             @Override
@@ -275,6 +284,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 for (DataSnapshot dataSnapshot: snapshot.getChildren()){
                     if (Objects.equals(selectedUsername, dataSnapshot.child("username").getValue(String.class))){
                         txtDeviceId.setText(dataSnapshot.child("deviceId").getValue(String.class));
+                        if (!txtDeviceId.getText().toString().trim().isEmpty()){
+                            btnRemove.setEnabled(true);
+                            btnBuzz.setEnabled(true);
+                        }
                         myDeviceRef.addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
                             public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -308,6 +321,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             }
         });
+
         btnRemove.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -320,7 +334,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 DatabaseReference nodeToRemove = myVisitorRef.child(dataSnapshot.getKey());
                                 nodeToRemove.removeValue();
                                 myDeviceRef.child(deviceId).child("used").setValue(false);
+                                myDeviceRef.child(deviceId).child("buzz").setValue(false);
+                                btnBuzz.setBackgroundColor(0xFFDC143C);
                                 txtDeviceId.setText("");
+                                btnRemove.setEnabled(false);
+                                btnBuzz.setEnabled(false);
+                                Marker marker = hashMapMarker.get(selectedUsername);
+                                if (marker != null){
+                                    marker.remove();
+                                }
+
                             }
                         }
                     }
@@ -332,6 +355,30 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 });
             }
         });
+        btnBuzz.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                myDeviceRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        String deviceId = txtDeviceId.getText().toString();
+                        Boolean buzzValue = !Boolean.TRUE.equals(snapshot.child(deviceId).child("buzz").getValue(Boolean.class));
+                        myDeviceRef.child(deviceId).child("buzz").setValue(buzzValue);
+                        if (buzzValue) {
+                            btnBuzz.setBackgroundColor(0xFF32CD32);
+                        } else {
+                            btnBuzz.setBackgroundColor(0xFFDC143C);
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+
+                    }
+                });
+            }
+        });
+
     }
 
     @Override
